@@ -80,6 +80,12 @@
         y: by,
         r: radius,
         hidden: false,
+        mixSeedX: Math.random() * Math.PI * 2,
+        mixSeedY: Math.random() * Math.PI * 2,
+        mixRadiusX: 6 + Math.random() * 10,
+        mixRadiusY: 5 + Math.random() * 8,
+        mixSpeed: 1.2 + Math.random() * 1.8,
+        drumLag: 0.75 + Math.random() * 0.55,
       });
     }
     return balls;
@@ -93,6 +99,37 @@
   function fmtRatio(value, total) {
     if (total <= 0) return "0.00%";
     return `${((value / total) * 100).toFixed(2)}%`;
+  }
+
+  function gcd(a, b) {
+    let x = Math.abs(a);
+    let y = Math.abs(b);
+    while (y !== 0) {
+      const temp = x % y;
+      x = y;
+      y = temp;
+    }
+    return x || 1;
+  }
+
+  function formatCountRatio(ddCount, ddHeteroCount, ddRecessiveCount) {
+    const base = gcd(gcd(ddCount, ddHeteroCount), ddRecessiveCount);
+    return `${Math.round(ddCount / base)} : ${Math.round(ddHeteroCount / base)} : ${Math.round(ddRecessiveCount / base)}`;
+  }
+
+  function assessGenotypeCloseness(obsDD, obsDd, obsdd) {
+    const diffDD = Math.abs(obsDD - 0.25);
+    const diffDd = Math.abs(obsDd - 0.5);
+    const diffdd = Math.abs(obsdd - 0.25);
+    const maxDiff = Math.max(diffDD, diffDd, diffdd);
+
+    if (maxDiff <= 0.03) {
+      return "非常接近 1:2:1";
+    }
+    if (maxDiff <= 0.08) {
+      return "接近 1:2:1";
+    }
+    return "暂时不够接近 1:2:1，建议增加实验次数后再观察";
   }
 
   function resetSimulation() {
@@ -114,6 +151,7 @@
       currentText: "初始化并摇匀中...",
       lastTimestamp: performance.now(),
       finished: false,
+      mixClock: 0,
     };
 
     ui.pauseBtn.textContent = "暂停";
@@ -141,6 +179,7 @@
 
     state.speedScale = Number.parseFloat(ui.speedInput.value) || 1;
     state.phaseElapsed += dt;
+    state.mixClock += dt / 1000;
 
     const femaleBalls = state.femaleBalls;
     const maleBalls = state.maleBalls;
@@ -261,6 +300,8 @@
 
   function drawBucket(bucket, balls, isShuffle) {
     ctx.save();
+    const centerX = bucket.x + bucket.w / 2;
+    const centerY = bucket.y + bucket.h / 2 + 16;
 
     // 桶体
     ctx.fillStyle = "#ffffff";
@@ -276,13 +317,59 @@
     ctx.font = "bold 15px Microsoft YaHei";
     ctx.fillText(bucket.title, bucket.x + 10, bucket.y - 16);
 
+    if (isShuffle) {
+      const swirlAlpha = 0.18 + 0.08 * (1 + Math.sin(state.mixClock * 7));
+      ctx.strokeStyle = `rgba(15, 23, 42, ${swirlAlpha.toFixed(3)})`;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i += 1) {
+        const arcY = bucket.y + 95 + i * 105;
+        ctx.beginPath();
+        ctx.arc(bucket.x + bucket.w / 2, arcY, 58, Math.PI * 0.2, Math.PI * 1.55);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = `rgba(59, 130, 246, ${(swirlAlpha + 0.1).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, Math.min(bucket.w, bucket.h) * 0.28, 0.2, Math.PI * 1.85);
+      ctx.stroke();
+    }
+
     // 画球
     for (const ball of balls) {
       if (ball.hidden) continue;
 
-      const jitter = isShuffle ? (Math.random() - 0.5) * 5 : 0;
-      const x = ball.baseX + jitter;
-      const y = ball.baseY + jitter;
+      let x = ball.baseX;
+      let y = ball.baseY;
+
+      if (isShuffle) {
+        const relX = ball.baseX - centerX;
+        const relY = ball.baseY - centerY;
+        const radiusFactor = Math.min(1, Math.hypot(relX, relY) / (bucket.w * 0.42));
+        const angle = state.mixClock * 2.8 * ball.drumLag + radiusFactor * 0.6;
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+
+        const rotatedX = relX * cosA - relY * sinA;
+        const rotatedY = relX * sinA + relY * cosA;
+
+        const orbitBlend = 0.22 + radiusFactor * 0.18;
+        const orbitX = relX + (rotatedX - relX) * orbitBlend;
+        const orbitY = relY + (rotatedY - relY) * orbitBlend;
+
+        const localMixX = Math.sin(state.mixClock * (ball.mixSpeed + 1.6) + ball.mixSeedX) * ball.mixRadiusX * 0.55;
+        const localMixY = Math.cos(state.mixClock * (ball.mixSpeed + 1.2) + ball.mixSeedY) * ball.mixRadiusY * 0.55;
+
+        x = centerX + orbitX + localMixX;
+        y = centerY + orbitY + localMixY;
+
+        const minX = bucket.x + 18 + ball.r;
+        const maxX = bucket.x + bucket.w - 18 - ball.r;
+        const minY = bucket.y + 42 + ball.r;
+        const maxY = bucket.y + bucket.h - 18 - ball.r;
+        x = Math.max(minX, Math.min(maxX, x));
+        y = Math.max(minY, Math.min(maxY, y));
+      }
+
       ball.x = x;
       ball.y = y;
 
@@ -374,6 +461,8 @@
     const theoDD = 0.25;
     const theoDd = 0.5;
     const theodd = 0.25;
+    const countRatio = formatCountRatio(state.counts.DD, state.counts.Dd, state.counts.dd);
+    const closeness = assessGenotypeCloseness(obsDD, obsDd, obsdd);
 
     const dominant = (state.counts.DD + state.counts.Dd) / t;
     const recessive = state.counts.dd / t;
@@ -381,8 +470,11 @@
     const report = [
       `总实验次数：${state.trial}`,
       "",
+      `累计次数比 DD : Dd : dd = ${state.counts.DD} : ${state.counts.Dd} : ${state.counts.dd}`,
+      `化简参考比 DD : Dd : dd = ${countRatio}`,
       `观察比例 DD : Dd : dd = ${obsDD.toFixed(4)} : ${obsDd.toFixed(4)} : ${obsdd.toFixed(4)}`,
       `理论比例 DD : Dd : dd = ${theoDD.toFixed(4)} : ${theoDd.toFixed(4)} : ${theodd.toFixed(4)}`,
+      `判定：${closeness}`,
       `|DD误差| = ${(Math.abs(obsDD - theoDD) * 100).toFixed(2)}%`,
       `|Dd误差| = ${(Math.abs(obsDd - theoDd) * 100).toFixed(2)}%`,
       `|dd误差| = ${(Math.abs(obsdd - theodd) * 100).toFixed(2)}%`,
@@ -439,6 +531,8 @@
   ui.speedInput.addEventListener("input", () => {
     ui.speedText.textContent = `${Number.parseFloat(ui.speedInput.value).toFixed(1)}x`;
   });
+
+  ui.speedText.textContent = `${Number.parseFloat(ui.speedInput.value).toFixed(1)}x`;
 
   ui.totalTrialsInput.addEventListener("change", () => {
     const n = Number.parseInt(ui.totalTrialsInput.value, 10);
