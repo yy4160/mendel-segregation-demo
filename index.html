@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>孟德尔分离定律动画模拟（Dd × Dd）</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-bg"></div>
+  <main class="app">
+    <header class="top-bar">
+      <h1>孟德尔分离定律动画模拟（Dd × Dd）</h1>
+      <p>父本（雄配子）球多，母本（雌配子）球少；两桶内 D:d 均为 1:1。每次随机抽取后放回并摇匀。</p>
+    </header>
+
+    <section class="layout">
+      <section class="canvas-wrap">
+        <canvas id="simCanvas" width="980" height="620" aria-label="孟德尔实验动画画布"></canvas>
+      </section>
+
+      <aside class="panel">
+        <h2>实时统计</h2>
+        <div class="stat-row"><span>当前实验次数</span><strong id="trialCount">0</strong></div>
+
+        <h3>基因型累计次数</h3>
+        <div class="stat-row"><span>DD</span><strong id="countDD">0</strong></div>
+        <div class="stat-row"><span>Dd</span><strong id="countDd">0</strong></div>
+        <div class="stat-row"><span>dd</span><strong id="countdd">0</strong></div>
+
+        <h3>基因型实时比例</h3>
+        <div class="stat-row"><span>DD</span><strong id="ratioDD">0.00%</strong></div>
+        <div class="stat-row"><span>Dd</span><strong id="ratioDd">0.00%</strong></div>
+        <div class="stat-row"><span>dd</span><strong id="ratiodd">0.00%</strong></div>
+
+        <h3>理论比例</h3>
+        <p class="theory">基因型：DD : Dd : dd = 1 : 2 : 1</p>
+        <p class="theory">表型：显性 : 隐性 = 3 : 1</p>
+
+        <h3>控制</h3>
+        <label class="control-line">
+          总实验次数
+          <input id="totalTrialsInput" type="number" min="1" max="5000" value="100" />
+        </label>
+        <label class="control-line">
+          动画速度
+          <input id="speedInput" type="range" min="0.5" max="3" step="0.1" value="1" />
+          <span id="speedText">1.0x</span>
+        </label>
+
+        <div class="btn-row">
+          <button id="pauseBtn" type="button">暂停</button>
+          <button id="resetBtn" type="button">重置</button>
+        </div>
+
+        <h3>实验说明</h3>
+        <p class="desc">本模拟对应孟德尔豌豆 Dd × Dd 自交。每轮先抽雌配子再抽雄配子，组合得到 DD、Dd、dd，随后放回并摇匀，确保下一轮概率保持不变。</p>
+
+        <h3>结果对比</h3>
+        <pre id="finalReport" class="report">实验进行中...</pre>
+      </aside>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

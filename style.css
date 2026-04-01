@@ -1,0 +1,146 @@
+:root {
+  --bg1: #e9f2ff;
+  --bg2: #fff9e6;
+  --ink: #12263a;
+  --panel: #ffffffdd;
+  --accent: #0c7c59;
+  --bucket: #5a7184;
+  --male: #3b82f6;
+  --female: #ef4444;
+  --ball-d: #facc15;
+  --ball-rim: #334155;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(130deg, var(--bg1), var(--bg2));
+}
+
+.page-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 20%, #93c5fd66, transparent 30%),
+    radial-gradient(circle at 85% 12%, #fde68a66, transparent 26%),
+    radial-gradient(circle at 65% 85%, #86efac55, transparent 35%);
+  pointer-events: none;
+}
+
+.app {
+  position: relative;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.top-bar p {
+  margin-top: 8px;
+  color: #334155;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+.canvas-wrap {
+  background: #ffffffb3;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 8px;
+}
+
+#simCanvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fafc, #eef2ff);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 14px;
+  backdrop-filter: blur(4px);
+}
+
+.panel h2,
+.panel h3 {
+  margin: 10px 0;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed #cbd5e1;
+  padding: 4px 0;
+}
+
+.theory,
+.desc {
+  margin: 6px 0;
+  line-height: 1.45;
+}
+
+.control-line {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+input[type="number"],
+input[type="range"] {
+  width: 100%;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+button {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  background: #e2e8f0;
+}
+
+.report {
+  white-space: pre-wrap;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 128px;
+  font-size: 13px;
+}
+
+@media (max-width: 1080px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
