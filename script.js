@@ -49,6 +49,8 @@
   // 左侧两个桶区域
   const bucketFemale = { x: 70, y: 130, w: 290, h: 400, title: "母本桶（雌配子）", color: "#ef4444" };
   const bucketMale = { x: 390, y: 90, w: 290, h: 440, title: "父本桶（雄配子）", color: "#3b82f6" };
+  const FEMALE_COLS = 5;
+  const MALE_COLS = 10;
 
   // 中间组合展示区域
   const combineSpotFemale = { x: 760, y: 220 };
@@ -56,31 +58,63 @@
 
   let state = null;
 
+  function shuffleArrayInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+  }
+
+  function buildSlots(bucket, total, cols) {
+    const slots = [];
+    const cellW = Math.floor((bucket.w - 40) / cols);
+    const rows = Math.ceil(total / cols);
+    const cellH = Math.max(20, Math.floor((bucket.h - 80) / rows));
+
+    for (let i = 0; i < total; i += 1) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      slots.push({
+        x: bucket.x + 20 + col * cellW + cellW / 2,
+        y: bucket.y + 50 + row * cellH + cellH / 2,
+      });
+    }
+    return slots;
+  }
+
+  function randomizeBallLayout(balls, bucket, cols) {
+    const slots = buildSlots(bucket, balls.length, cols);
+    shuffleArrayInPlace(slots);
+    for (let i = 0; i < balls.length; i += 1) {
+      balls[i].baseX = slots[i].x;
+      balls[i].baseY = slots[i].y;
+      if (!balls[i].hidden) {
+        balls[i].x = slots[i].x;
+        balls[i].y = slots[i].y;
+      }
+    }
+  }
+
   function createBucketBalls(countD, countd, bucket, cols) {
     const balls = [];
     const total = countD + countd;
     const radius = total > 60 ? 10 : 14;
-    const cellW = Math.floor((bucket.w - 40) / cols);
-    const rows = Math.ceil(total / cols);
-    const cellH = Math.max(20, Math.floor((bucket.h - 80) / rows));
+    const slots = buildSlots(bucket, total, cols);
 
     const alleles = [];
     for (let i = 0; i < countD; i += 1) alleles.push("D");
     for (let i = 0; i < countd; i += 1) alleles.push("d");
 
-    // Fisher-Yates 洗牌：保持 D/d 总数不变，但空间排布随机化
-    for (let i = alleles.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = alleles[i];
-      alleles[i] = alleles[j];
-      alleles[j] = temp;
-    }
+    // Fisher-Yates 洗牌：保持 D/d 总数不变，但顺序随机化
+    shuffleArrayInPlace(alleles);
+    // 位置槽位也随机化：避免出现固定排布
+    shuffleArrayInPlace(slots);
 
     for (let i = 0; i < alleles.length; i += 1) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const bx = bucket.x + 20 + col * cellW + cellW / 2;
-      const by = bucket.y + 50 + row * cellH + cellH / 2;
+      const bx = slots[i].x;
+      const by = slots[i].y;
       balls.push({
         allele: alleles[i],
         baseX: bx,
@@ -174,8 +208,8 @@
       phaseElapsed: 0,
       trial: 0,
       counts: { DD: 0, Dd: 0, dd: 0 },
-      femaleBalls: createBucketBalls(CONFIG.femaleD, CONFIG.femaled, bucketFemale, 5),
-      maleBalls: createBucketBalls(CONFIG.maleD, CONFIG.maled, bucketMale, 10),
+      femaleBalls: createBucketBalls(CONFIG.femaleD, CONFIG.femaled, bucketFemale, FEMALE_COLS),
+      maleBalls: createBucketBalls(CONFIG.maleD, CONFIG.maled, bucketMale, MALE_COLS),
       pickedFemaleIndex: -1,
       pickedMaleIndex: -1,
       flyingFemale: null,
@@ -324,6 +358,9 @@
           ui.pauseBtn.textContent = "继续";
           updateFinalReport();
         } else {
+          // 每轮放回后重排位置：体现“混匀前后位置发生变化”
+          randomizeBallLayout(state.femaleBalls, bucketFemale, FEMALE_COLS);
+          randomizeBallLayout(state.maleBalls, bucketMale, MALE_COLS);
           beginPhase("shuffle");
         }
       }
