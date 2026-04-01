@@ -104,6 +104,13 @@ body {
   margin: 10px 0;
 }
 
+.inline-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
 input[type="number"],
 input[type="range"] {
   width: 100%;

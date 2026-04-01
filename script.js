@@ -39,6 +39,7 @@
     ratiodd: $("ratiodd"),
     finalReport: $("finalReport"),
     totalTrialsInput: $("totalTrialsInput"),
+    startBtn: $("startBtn"),
     speedInput: $("speedInput"),
     speedText: $("speedText"),
     pauseBtn: $("pauseBtn"),
@@ -132,12 +133,35 @@
     return "暂时不够接近 1:2:1，建议增加实验次数后再观察";
   }
 
-  function resetSimulation() {
+  function assessPhenotypeCloseness(dominant, recessive) {
+    const maxDiff = Math.max(Math.abs(dominant - 0.75), Math.abs(recessive - 0.25));
+    if (maxDiff <= 0.03) {
+      return "非常接近 3:1";
+    }
+    if (maxDiff <= 0.08) {
+      return "接近 3:1";
+    }
+    return "暂时不够接近 3:1";
+  }
+
+  function getTheoryConformity(genoText, phenoText) {
+    const genoGood = genoText.includes("非常接近") || genoText.includes("接近 1:2:1");
+    const phenoGood = phenoText.includes("非常接近") || phenoText.includes("接近 3:1");
+    if (genoGood && phenoGood) {
+      return "是（本次实验结果符合理论比例）";
+    }
+    if (genoGood || phenoGood) {
+      return "基本符合（建议增加实验次数以进一步接近理论值）";
+    }
+    return "暂不符合（建议提高实验次数并重复观察）";
+  }
+
+  function resetSimulation(autoStart = false) {
     const totalTrials = Number.parseInt(ui.totalTrialsInput.value, 10);
     state = {
       totalTrials: Number.isFinite(totalTrials) && totalTrials > 0 ? totalTrials : CONFIG.defaultTotalTrials,
       speedScale: Number.parseFloat(ui.speedInput.value) || 1,
-      running: true,
+      running: autoStart,
       phase: "shuffle",
       phaseElapsed: 0,
       trial: 0,
@@ -148,14 +172,14 @@
       pickedMaleIndex: -1,
       flyingFemale: null,
       flyingMale: null,
-      currentText: "初始化并摇匀中...",
+      currentText: autoStart ? "初始化并摇匀中..." : "请先设置总实验次数，然后点击“开始实验”",
       lastTimestamp: performance.now(),
       finished: false,
       mixClock: 0,
     };
 
     ui.pauseBtn.textContent = "暂停";
-    ui.finalReport.textContent = "实验进行中...";
+    ui.finalReport.textContent = autoStart ? "实验进行中..." : "等待开始实验...";
     updateStatsPanel();
   }
 
@@ -466,21 +490,28 @@
 
     const dominant = (state.counts.DD + state.counts.Dd) / t;
     const recessive = state.counts.dd / t;
+    const phenotypeCloseness = assessPhenotypeCloseness(dominant, recessive);
+    const conformity = getTheoryConformity(closeness, phenotypeCloseness);
 
     const report = [
       `总实验次数：${state.trial}`,
+      "",
+      `是否符合理论比例：${conformity}`,
+      "基因型：DD : Dd : dd = 1 : 2 : 1",
+      "表型：显性 : 隐性 = 3 : 1",
       "",
       `累计次数比 DD : Dd : dd = ${state.counts.DD} : ${state.counts.Dd} : ${state.counts.dd}`,
       `化简参考比 DD : Dd : dd = ${countRatio}`,
       `观察比例 DD : Dd : dd = ${obsDD.toFixed(4)} : ${obsDd.toFixed(4)} : ${obsdd.toFixed(4)}`,
       `理论比例 DD : Dd : dd = ${theoDD.toFixed(4)} : ${theoDd.toFixed(4)} : ${theodd.toFixed(4)}`,
-      `判定：${closeness}`,
+      `基因型判定：${closeness}`,
       `|DD误差| = ${(Math.abs(obsDD - theoDD) * 100).toFixed(2)}%`,
       `|Dd误差| = ${(Math.abs(obsDd - theoDd) * 100).toFixed(2)}%`,
       `|dd误差| = ${(Math.abs(obsdd - theodd) * 100).toFixed(2)}%`,
       "",
       `观察表型比例 显性 : 隐性 = ${dominant.toFixed(4)} : ${recessive.toFixed(4)}`,
       "理论表型比例 显性 : 隐性 = 0.7500 : 0.2500",
+      `表型判定：${phenotypeCloseness}`,
       "",
       "说明：实验次数越多，观察结果通常越接近理论值。",
     ].join("\n");
@@ -517,11 +548,17 @@
 
   ui.pauseBtn.addEventListener("click", () => {
     if (!state) return;
+    if (state.trial === 0 && !state.running) return;
     state.running = !state.running;
     ui.pauseBtn.textContent = state.running ? "暂停" : "继续";
     if (state.running) {
       state.lastTimestamp = performance.now();
     }
+  });
+
+  ui.startBtn.addEventListener("click", () => {
+    resetSimulation(true);
+    state.lastTimestamp = performance.now();
   });
 
   ui.resetBtn.addEventListener("click", () => {
@@ -541,6 +578,6 @@
     }
   });
 
-  resetSimulation();
+  resetSimulation(false);
   requestAnimationFrame(loop);
 })();

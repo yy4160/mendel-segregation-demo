@@ -40,7 +40,10 @@
         <h3>控制</h3>
         <label class="control-line">
           总实验次数
-          <input id="totalTrialsInput" type="number" min="1" max="5000" value="100" />
+          <div class="inline-control">
+            <input id="totalTrialsInput" type="number" min="1" max="5000" value="100" />
+            <button id="startBtn" type="button">开始实验</button>
+          </div>
         </label>
         <label class="control-line">
           动画速度（最高 15x）
