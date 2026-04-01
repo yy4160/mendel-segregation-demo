@@ -68,6 +68,14 @@
     for (let i = 0; i < countD; i += 1) alleles.push("D");
     for (let i = 0; i < countd; i += 1) alleles.push("d");
 
+    // Fisher-Yates 洗牌：保持 D/d 总数不变，但空间排布随机化
+    for (let i = alleles.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = alleles[i];
+      alleles[i] = alleles[j];
+      alleles[j] = temp;
+    }
+
     for (let i = 0; i < alleles.length; i += 1) {
       const col = i % cols;
       const row = Math.floor(i / cols);
